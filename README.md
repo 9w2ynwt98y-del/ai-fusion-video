@@ -5,26 +5,41 @@
   <strong>融光，基于 Agent 的智能视频创作平台</strong>
 </p>
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/Stonewuu/ai-fusion-video?display_name=tag" alt="version" />
+  <a href="https://api.funai.works">FunAPI 控制台</a>
+  ·
+  <a href="https://api.funai.works/docs/">API 文档</a>
 </p>
 
-<table align="center" style="margin: 0 auto; display: table;">
-  <tr>
-    <td align="center">
-      <sub>⚡️ <b>特别赞助</b> ⚡️</sub>
-      <br />
-      <a href="https://doloffer.com" target="_blank"><font size="4"><b>doloffer</b></font></a>
-      <br />
-      <br />
-      <a href="https://doloffer.com" target="_blank">
-        <img width="539"  alt="image" src="https://github.com/user-attachments/assets/825cf226-0510-4c46-a9ad-a90d4de668b8" />
-      </a>
-      <br />
-      <sub>优惠价GPT  、claude、YouTube（含音乐）会员充值，正版订阅 售后无忧，https://doloffer.com 9折优惠码：AI8888 </sub>
-      <br />
-    </td>
-  </tr>
-</table>
+---
+
+## FunAPI 模型价格
+
+本项目已内置 FunAPI 接入，Base URL 为 `https://api.funai.works/v1`。以下为当前常用模型基础价格：
+
+### 图片模型
+
+| 模型 | 计费方式 | 基础价格 |
+| --- | --- | ---: |
+| `grok-imagine-image-lite` | 按张 | ¥0.02/张 |
+| `gpt-image-medium` | 按张 | ¥0.03/张 |
+| `grok-imagine-image` | 按张 | ¥0.04/张 |
+| `gpt-image-2` / `gpt-image` | 按张 | ¥0.05/张 |
+| `gemini-2.5-flash-image` | 按张 | ¥0.05/张 |
+| `gemini-3.1-flash-image-preview` / `nano-banana2` | 按张 | ¥0.05/张 |
+| `gemini-3-pro-image` / `nano-banana-pro` | 按张 | ¥0.08/张 |
+
+### 视频模型
+
+| 模型 | 计费方式 | 基础价格 |
+| --- | --- | ---: |
+| `veo-3.1-lite` | 按条 | ¥0.085/条 |
+| `seedance-2.0-fast` | 按秒 | ¥0.13/秒 |
+| `veo-3.1-fast` | 按条 | ¥0.18/条 |
+| `seedance-2.0` | 按秒 | ¥0.25/秒 |
+| `veo-3.1` | 按条 | ¥0.30/条 |
+| `sora-2` / `sora-2-pro` | 按条 | ¥0.50/条 |
+
+VIP 分组当前按基础价格的 8 折结算。模型规格和价格可能调整，最终以 [FunAPI 控制台](https://api.funai.works) 显示及实际账单为准。
 
 ---
 
@@ -33,15 +48,6 @@
 融光是一款面向内容创作者的 AI 视频创作平台。你可以在平台上编写剧本，AI 会自动将剧本拆解为分镜画面，并利用多家主流 AI 模型生成配图和视频片段，让视频创作流程更高效、更智能。
 
 **技术栈**：后端基于 Java 21 + Spring Boot 3.5 + Spring AI 构建，前端使用 Next.js 16 + React 19 + TypeScript 开发。
-
-### 交流群二维码(由于交流群人数人数超200，请加微信拉群【请加备注】)：
-
-<p align="center">
-  <img src="https://image.stonewu.com/file/wechat-qrcode.png" alt="邀请二维码" width="368" />
-  <img src="https://image.stonewu.com/file/ai-fusion-video-qrcode-group.png" alt="交流群二维码" width="368" />
-</p>
-
----
 
 ## ✨ 功能特性
 
@@ -96,7 +102,7 @@ https://github.com/user-attachments/assets/be99d4c1-dc09-4616-8fba-06cb959c84c8
 
 ```bash
 # 克隆项目
-git clone https://github.com/Stonewuu/ai-fusion-video.git
+git clone https://github.com/9w2ynwt98y-del/ai-fusion-video.git
 cd ai-fusion-video
 
 # 可选：复制并修改环境变量
@@ -190,13 +196,9 @@ FunAI 视频模型统一使用 JSON `POST /v1/videos` 提交，并通过
 
 ---
 
-## ⭐ Star 趋势
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Stonewuu/ai-fusion-video&type=Date)](https://star-history.com/#Stonewuu/ai-fusion-video&Date)
-
 ## 🙏 致谢
 
-- 感谢 [LinuxDo](https://linux.do) 论坛的支持
+- 感谢原项目 [Stonewuu/ai-fusion-video](https://github.com/Stonewuu/ai-fusion-video)
 - 感谢开源项目 [waoowaoo](https://github.com/saturndec/waoowaoo) 提供的剧本 UI 设计灵感
 
 ## 📄 License
