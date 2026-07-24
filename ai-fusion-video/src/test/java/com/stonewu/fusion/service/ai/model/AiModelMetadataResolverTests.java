@@ -53,4 +53,19 @@ class AiModelMetadataResolverTests {
         assertEquals("agnes", metadata.modelFamily());
         assertEquals("agnes", metadata.modelProtocol());
     }
+
+    @Test
+    void shouldUseFunAiProtocolForFunAiVideoModels() {
+        AiModelMetadataResolver resolver = new AiModelMetadataResolver(mock(ApiConfigService.class));
+        AiModel model = AiModel.builder()
+                .name("Veo 3.1 Lite")
+                .code("veo-3.1-lite")
+                .modelType(3)
+                .build();
+
+        AiModelMetadata metadata = resolver.resolve(model, "funai");
+
+        assertEquals("veo", metadata.modelFamily());
+        assertEquals("funai", metadata.modelProtocol());
+    }
 }

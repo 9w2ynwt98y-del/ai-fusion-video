@@ -171,6 +171,7 @@ export interface ApiConfigPageReq {
 export const PLATFORM_OPTIONS = [
   { value: "openai_compatible", label: "OpenAI 兼容", description: "OpenAI / DeepSeek / 智谱 / 硅基流动等" },
   { value: "newapi", label: "New API", description: "New API 聚合网关，支持远程模型发现与视频任务接口" },
+  { value: "funai", label: "FunAI", description: "FunAI 统一模型网关，支持 Seedance / Veo / Sora 视频模型" },
   { value: "volcengine", label: "火山引擎（豆包）", description: "字节跳动火山引擎豆包大模型" },
   { value: "vertex_ai", label: "Google Vertex AI", description: "Google Cloud Vertex AI Gemini" },
   { value: "gemini", label: "Google Gemini API", description: "Google AI Studio / Gemini Developer API" },
@@ -203,6 +204,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
   openai_compatible: "OpenAI 兼容",
   openai: "OpenAI 兼容",
   newapi: "New API",
+  funai: "FunAI",
   deepseek: "DeepSeek",
   volcengine: "火山引擎",
   zhipu: "智谱",

@@ -1,5 +1,7 @@
 package com.stonewu.fusion.service.generation.strategy.impl;
 
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.stonewu.fusion.entity.ai.AiModel;
 import com.stonewu.fusion.entity.ai.ApiConfig;
 import com.stonewu.fusion.entity.generation.VideoItem;
@@ -10,6 +12,7 @@ import com.stonewu.fusion.service.ai.ModelPresetService;
 import com.stonewu.fusion.service.ai.model.AiModelMetadataResolver;
 import com.stonewu.fusion.service.generation.VideoGenerationService;
 import com.stonewu.fusion.service.generation.strategy.impl.openaivideo.OpenAiCompatibleAgnesVideoProtocolAdapter;
+import com.stonewu.fusion.service.generation.strategy.impl.openaivideo.OpenAiCompatibleFunAiVideoProtocolAdapter;
 import com.stonewu.fusion.service.generation.strategy.impl.openaivideo.OpenAiCompatibleGenericVideoProtocolAdapter;
 import com.stonewu.fusion.service.generation.strategy.impl.openaivideo.OpenAiCompatibleSoraVideoProtocolAdapter;
 import com.stonewu.fusion.service.generation.strategy.impl.openaivideo.OpenAiCompatibleVideoProtocolRouter;
@@ -150,6 +153,104 @@ class OpenAiVideoStrategyTests {
         verify(mediaStorageService).storeBytes(videoBytes, "videos", "mp4");
     }
 
+    @Test
+    void submitAndPollFunAiVideoUsesJsonAndAuthenticatedContentUrl() throws Exception {
+        byte[] videoBytes = "funai-mp4-bytes".getBytes(StandardCharsets.UTF_8);
+        AtomicReference<String> submitContentType = new AtomicReference<>();
+        AtomicReference<String> submitBody = new AtomicReference<>();
+        AtomicReference<String> contentAuthorization = new AtomicReference<>();
+
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/v1/videos", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            if ("POST".equalsIgnoreCase(exchange.getRequestMethod()) && "/v1/videos".equals(path)) {
+                submitContentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
+                submitBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                writeJson(exchange, """
+                        {"id":"video_funai","status":"queued","model":"veo-3.1-lite"}
+                        """);
+                return;
+            }
+            if ("/v1/videos/video_funai/content".equals(path)) {
+                contentAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+                writeBinary(exchange, videoBytes, "video/mp4");
+                return;
+            }
+            if ("/v1/videos/video_funai".equals(path)) {
+                String contentUrl = "http://localhost:" + server.getAddress().getPort()
+                        + "/v1/videos/video_funai/content";
+                writeJson(exchange, """
+                        {"id":"video_funai","status":"completed","seconds":8,"content_url":"%s"}
+                        """.formatted(contentUrl));
+                return;
+            }
+            exchange.sendResponseHeaders(404, -1);
+            exchange.close();
+        });
+        server.start();
+
+        AiModel model = AiModel.builder()
+                .id(12L)
+                .code("veo-3.1-lite")
+                .apiConfigId(3L)
+                .modelType(3)
+                .build();
+        ApiConfig apiConfig = ApiConfig.builder()
+                .platform("funai")
+                .apiUrl("http://localhost:" + server.getAddress().getPort() + "/v1")
+                .apiKey("funai-key")
+                .build();
+
+        AiModelService aiModelService = mock(AiModelService.class);
+        when(aiModelService.getById(12L)).thenReturn(model);
+        ApiConfigService apiConfigService = mock(ApiConfigService.class);
+        when(apiConfigService.getById(3L)).thenReturn(apiConfig);
+
+        VideoItem item = VideoItem.builder().id(102L).taskId(7L).status(0).build();
+        VideoGenerationService videoGenerationService = mock(VideoGenerationService.class);
+        when(videoGenerationService.listItems(7L)).thenReturn(List.of(item));
+
+        MediaStorageService mediaStorageService = mock(MediaStorageService.class);
+        when(mediaStorageService.storeBytes(any(), eq("videos"), eq("mp4")))
+                .thenReturn("/media/videos/funai-result.mp4");
+
+        OpenAiVideoStrategy strategy = newStrategy(
+                aiModelService,
+                apiConfigService,
+                videoGenerationService,
+                mock(ModelPresetService.class),
+                mediaStorageService
+        );
+
+        VideoTask task = VideoTask.builder()
+                .id(7L)
+                .taskId("task-funai")
+                .modelId(12L)
+                .prompt("A cinematic sunrise")
+                .duration(8)
+                .ratio("16:9")
+                .firstFrameImageUrl("https://example.com/first.png")
+                .generateAudio(false)
+                .build();
+
+        String trackingId = strategy.submit(task);
+        strategy.poll(trackingId, task);
+
+        JSONObject body = JSONUtil.parseObj(submitBody.get());
+        assertThat(trackingId).isEqualTo("video_funai");
+        assertThat(submitContentType.get()).startsWith("application/json");
+        assertThat(body.getStr("model")).isEqualTo("veo-3.1-lite");
+        assertThat(body.getInt("seconds")).isEqualTo(8);
+        assertThat(body.getStr("size")).isEqualTo("1280x720");
+        assertThat(body.getJSONArray("images").getStr(0)).isEqualTo("https://example.com/first.png");
+        assertThat(body.getBool("generate_audio")).isFalse();
+        assertThat(contentAuthorization.get()).isEqualTo("Bearer funai-key");
+        assertThat(item.getVideoUrl()).isEqualTo("/media/videos/funai-result.mp4");
+        assertThat(item.getStatus()).isEqualTo(1);
+        assertThat(item.getDuration()).isEqualTo(8);
+        verify(mediaStorageService).storeBytes(videoBytes, "videos", "mp4");
+    }
+
         @Test
         void submitAndPollAgnesProtocolUsesJsonBodyAndVideoIdQuery() throws Exception {
         AtomicReference<String> submitBody = new AtomicReference<>();
@@ -252,7 +353,8 @@ class OpenAiVideoStrategyTests {
         OpenAiCompatibleVideoProtocolRouter router = new OpenAiCompatibleVideoProtocolRouter(List.of(
             genericAdapter,
             new OpenAiCompatibleSoraVideoProtocolAdapter(genericAdapter),
-            new OpenAiCompatibleAgnesVideoProtocolAdapter(support)
+            new OpenAiCompatibleAgnesVideoProtocolAdapter(support),
+            new OpenAiCompatibleFunAiVideoProtocolAdapter(support)
         ));
 
         return new OpenAiVideoStrategy(

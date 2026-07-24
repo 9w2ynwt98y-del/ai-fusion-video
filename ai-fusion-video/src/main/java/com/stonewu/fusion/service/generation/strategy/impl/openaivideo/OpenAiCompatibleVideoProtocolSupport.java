@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 public class OpenAiCompatibleVideoProtocolSupport {
 
     private static final String DEFAULT_BASE_URL = "https://api.openai.com";
+    private static final String DEFAULT_FUNAI_BASE_URL = "https://api.funai.works";
     private static final String DEFAULT_VIDEO_MODEL = "sora-2";
     private static final String DEFAULT_LOCAL_MEDIA_BASE_PATH = "./data/media";
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json");
@@ -165,6 +166,79 @@ public class OpenAiCompatibleVideoProtocolSupport {
         return RequestBody.create(body.toString(), JSON_MEDIA_TYPE);
     }
 
+    public RequestBody buildFunAiSubmitBody(OpenAiCompatibleVideoProtocolContext context) {
+        JSONObject body = JSONUtil.createObj();
+        JSONObject extraBody = asJsonObject(context.modelConfig().get("funAiExtraBody"));
+        if (extraBody == null) {
+            extraBody = asJsonObject(context.modelConfig().get("funaiExtraBody"));
+        }
+        if (extraBody != null) {
+            for (String key : extraBody.keySet()) {
+                body.set(key, extraBody.get(key));
+            }
+        }
+
+        String prompt = StrUtil.trim(context.task().getPrompt());
+        if (StrUtil.isBlank(prompt)) {
+            throw new BusinessException("FunAI 视频任务缺少 prompt");
+        }
+
+        body.set("model", resolveModelCode(context.model()));
+        body.set("prompt", prompt);
+
+        Integer seconds = resolveDurationSeconds(context.task(), context.modelConfig());
+        if (seconds != null) {
+            body.set("seconds", seconds);
+        }
+
+        String size = resolveFunAiSize(context.task(), context.modelConfig());
+        if (StrUtil.isNotBlank(size)) {
+            body.set("size", size);
+        }
+
+        List<String> frameImages = new ArrayList<>();
+        if (StrUtil.isNotBlank(context.task().getFirstFrameImageUrl())) {
+            frameImages.add(context.task().getFirstFrameImageUrl().trim());
+        }
+        if (StrUtil.isNotBlank(context.task().getLastFrameImageUrl())) {
+            frameImages.add(context.task().getLastFrameImageUrl().trim());
+        }
+        if (!frameImages.isEmpty()) {
+            body.set("images", frameImages);
+        }
+
+        List<String> elementReferences = parseJsonUrls(context.task().getReferenceImageUrls());
+        if (!elementReferences.isEmpty()) {
+            body.set("element_references", elementReferences);
+        }
+
+        List<String> inputVideos = parseJsonUrls(context.task().getReferenceVideoUrls());
+        if (inputVideos.size() == 1) {
+            body.set("input_video", inputVideos.get(0));
+        } else if (!inputVideos.isEmpty()) {
+            body.set("input_video", inputVideos);
+        }
+
+        List<String> audioReferences = parseJsonUrls(context.task().getReferenceAudioUrls());
+        if (!audioReferences.isEmpty()) {
+            body.set("audio_references", audioReferences);
+        }
+
+        Boolean generateAudio = context.task().getGenerateAudio() != null
+                ? context.task().getGenerateAudio()
+                : getBoolean(context.modelConfig(), "generateAudio", "generate_audio");
+        if (generateAudio != null) {
+            body.set("generate_audio", generateAudio);
+        }
+
+        String negativePrompt = getString(context.modelConfig(), "negativePrompt", "negative_prompt");
+        if (StrUtil.isNotBlank(negativePrompt)) {
+            body.set("negative_prompt", negativePrompt);
+        }
+        body.set("n", 1);
+        return RequestBody.create(body.toString(), JSON_MEDIA_TYPE);
+    }
+
     public String resolveOpenAiVideosUrl(ApiConfig apiConfig) {
         String baseUrl = normalizeBaseUrl(StrUtil.blankToDefault(apiConfig != null ? apiConfig.getApiUrl() : null,
                 DEFAULT_BASE_URL));
@@ -180,6 +254,58 @@ public class OpenAiCompatibleVideoProtocolSupport {
 
     public String resolveFixedV1VideosUrl(ApiConfig apiConfig) {
         return resolveApiRoot(apiConfig) + "/v1/videos";
+    }
+
+    public String resolveFunAiVideosUrl(ApiConfig apiConfig) {
+        String baseUrl = normalizeBaseUrl(StrUtil.blankToDefault(
+                apiConfig != null ? apiConfig.getApiUrl() : null, DEFAULT_FUNAI_BASE_URL));
+        if (endsWithIgnoreCase(baseUrl, "/videos")) {
+            return baseUrl;
+        }
+        if (endsWithIgnoreCase(baseUrl, "/v1")) {
+            return baseUrl + "/videos";
+        }
+        return baseUrl + "/v1/videos";
+    }
+
+    public String resolveFunAiContentUrl(ApiConfig apiConfig, String trackingId, String explicitContentUrl) {
+        String videosUrl = resolveFunAiVideosUrl(apiConfig);
+        if (StrUtil.isBlank(explicitContentUrl)) {
+            return videosUrl + "/" + trackingId + "/content";
+        }
+
+        String contentUrl = explicitContentUrl.trim();
+        if (StrUtil.startWithIgnoreCase(contentUrl, "http://")
+                || StrUtil.startWithIgnoreCase(contentUrl, "https://")) {
+            URI explicitUri = URI.create(contentUrl);
+            if (!isLoopbackHost(explicitUri.getHost())) {
+                return contentUrl;
+            }
+
+            URI endpoint = URI.create(videosUrl);
+            URI publicRoot = URI.create(endpoint.getScheme() + "://" + endpoint.getRawAuthority() + "/");
+            String relativePath = StrUtil.blankToDefault(explicitUri.getRawPath(), "").replaceFirst("^/+", "");
+            String query = explicitUri.getRawQuery() == null ? "" : "?" + explicitUri.getRawQuery();
+            return publicRoot.resolve(relativePath + query).toString();
+        }
+
+        URI endpoint = URI.create(videosUrl + "/");
+        if (contentUrl.startsWith("/") || contentUrl.startsWith("v1/")) {
+            URI root = URI.create(endpoint.getScheme() + "://" + endpoint.getRawAuthority() + "/");
+            return root.resolve(contentUrl.replaceFirst("^/+", "")).toString();
+        }
+        return endpoint.resolve(contentUrl).toString();
+    }
+
+    private boolean isLoopbackHost(String host) {
+        if (StrUtil.isBlank(host)) {
+            return false;
+        }
+        String normalized = host.trim().toLowerCase(Locale.ROOT);
+        return "localhost".equals(normalized)
+                || "0.0.0.0".equals(normalized)
+                || normalized.startsWith("127.")
+                || "::1".equals(normalized);
     }
 
     public String resolveApiRoot(ApiConfig apiConfig) {
@@ -341,6 +467,31 @@ public class OpenAiCompatibleVideoProtocolSupport {
                     return Long.parseLong(value.toString().trim());
                 } catch (NumberFormatException ignored) {
                     return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    public Boolean getBoolean(JSONObject config, String... keys) {
+        if (config == null) {
+            return null;
+        }
+        for (String key : keys) {
+            if (!config.containsKey(key)) {
+                continue;
+            }
+            Object value = config.get(key);
+            if (value instanceof Boolean bool) {
+                return bool;
+            }
+            if (value != null) {
+                String text = value.toString().trim();
+                if ("true".equalsIgnoreCase(text) || "1".equals(text) || "yes".equalsIgnoreCase(text)) {
+                    return true;
+                }
+                if ("false".equalsIgnoreCase(text) || "0".equals(text) || "no".equalsIgnoreCase(text)) {
+                    return false;
                 }
             }
         }
@@ -544,6 +695,31 @@ public class OpenAiCompatibleVideoProtocolSupport {
             return resolution;
         }
         return normalizeSize(getString(modelConfig, "size", "defaultResolution", "resolution"));
+    }
+
+    private String resolveFunAiSize(VideoTask task, JSONObject modelConfig) {
+        String explicitSize = resolveSize(task, modelConfig);
+        if (StrUtil.isNotBlank(explicitSize)) {
+            return explicitSize;
+        }
+
+        String ratio = StrUtil.blankToDefault(task.getRatio(), "16:9")
+                .trim()
+                .replace('：', ':')
+                .replace(" ", "");
+        String resolutionTier = StrUtil.blankToDefault(
+                getString(modelConfig, "resolutionTier", "resolution_tier", "qualityTier"), "720p")
+                .toLowerCase(Locale.ROOT);
+        boolean fullHd = "1080p".equals(resolutionTier);
+
+        return switch (ratio) {
+            case "9:16" -> fullHd ? "1080x1920" : "720x1280";
+            case "1:1" -> fullHd ? "1080x1080" : "720x720";
+            case "4:3" -> fullHd ? "1440x1080" : "960x720";
+            case "3:4" -> fullHd ? "1080x1440" : "720x960";
+            case "21:9" -> fullHd ? "2560x1080" : "1680x720";
+            default -> fullHd ? "1920x1080" : "1280x720";
+        };
     }
 
     private String resolveAgnesMode(VideoTask task, JSONObject modelConfig, int imageCount) {

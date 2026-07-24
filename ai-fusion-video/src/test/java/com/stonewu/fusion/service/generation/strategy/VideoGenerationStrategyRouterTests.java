@@ -40,4 +40,24 @@ class VideoGenerationStrategyRouterTests {
 
         assertSame(newApiStrategy, router.resolve(model));
     }
+
+    @Test
+    void shouldRouteFunAiThroughOpenAiCompatibleVideoOrchestration() {
+        ApiConfigService apiConfigService = mock(ApiConfigService.class);
+        AiModelMetadataResolver resolver = new AiModelMetadataResolver(apiConfigService);
+
+        VideoGenerationStrategy openAiStrategy = mock(VideoGenerationStrategy.class);
+        when(openAiStrategy.getName()).thenReturn("openai_compatible");
+        VideoGenerationStrategyRouter router = new VideoGenerationStrategyRouter(List.of(openAiStrategy), resolver);
+
+        AiModel model = AiModel.builder()
+                .id(2L)
+                .code("veo-3.1-lite")
+                .apiConfigId(12L)
+                .modelType(3)
+                .build();
+        when(apiConfigService.getById(12L)).thenReturn(ApiConfig.builder().id(12L).platform("funai").build());
+
+        assertSame(openAiStrategy, router.resolve(model));
+    }
 }

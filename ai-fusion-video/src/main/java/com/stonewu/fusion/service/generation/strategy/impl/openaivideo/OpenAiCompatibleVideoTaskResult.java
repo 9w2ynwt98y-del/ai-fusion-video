@@ -8,6 +8,7 @@ public record OpenAiCompatibleVideoTaskResult(
         String status,
         Integer durationSeconds,
         String videoUrl,
+        String contentUrl,
         String coverUrl,
         String errorMessage
 ) {

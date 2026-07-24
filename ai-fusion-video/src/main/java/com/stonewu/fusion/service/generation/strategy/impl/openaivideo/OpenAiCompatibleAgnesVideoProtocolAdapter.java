@@ -41,7 +41,7 @@ public class OpenAiCompatibleAgnesVideoProtocolAdapter implements OpenAiCompatib
         String status = support.firstText(root, "status", "state");
         Integer duration = support.parsePositiveSeconds(support.firstText(root, "seconds", "duration"));
         String errorMessage = support.extractErrorMessage(root);
-        return new OpenAiCompatibleVideoTaskResult(trackingId, status, duration, null, null, errorMessage);
+        return new OpenAiCompatibleVideoTaskResult(trackingId, status, duration, null, null, null, errorMessage);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class OpenAiCompatibleAgnesVideoProtocolAdapter implements OpenAiCompatib
                 "remixedFromVideoId");
         String coverUrl = support.firstText(root, "cover_url", "coverUrl", "thumbnail_url", "thumbnailUrl");
         String errorMessage = support.extractErrorMessage(root);
-        return new OpenAiCompatibleVideoTaskResult(trackingId, status, duration, videoUrl, coverUrl, errorMessage);
+        return new OpenAiCompatibleVideoTaskResult(trackingId, status, duration, videoUrl, null, coverUrl, errorMessage);
     }
 
     private String firstNonBlank(String... values) {

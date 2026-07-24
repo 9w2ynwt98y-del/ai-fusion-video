@@ -168,7 +168,21 @@ AI 模型可在系统设置页面动态管理，支持以下提供商：
 | Google    | Gemini 2.5 Pro, Gemini 2.5 Flash |
 | 通义千问  | Qwen-Max, Qwen-Plus              |
 | DeepSeek  | DeepSeek-R1, DeepSeek-V3         |
+| FunAI     | Seedance 2.0, Veo 3.1, Sora      |
 | Ollama    | 本地部署的开源模型               |
+
+#### FunAI 视频模型
+
+在“系统设置 → AI 模型”中新建 `FunAI` API 配置：
+
+- API 地址：`https://api.funai.works`（也兼容以 `/v1` 结尾的地址）
+- API 密钥：填写自己的 FunAI Bearer API Key
+- 点击“获取模型”可从 `/v1/models` 导入 Seedance、Veo、Sora 等视频模型
+
+FunAI 视频模型统一使用 JSON `POST /v1/videos` 提交，并通过
+`GET /v1/videos/{id}` 轮询。项目会传递 `seconds`、`size`、`images`、
+`element_references`、`input_video`、`audio_references`、`generate_audio` 和 `negative_prompt`，
+完成后优先使用返回的 `url`，或鉴权下载 `content_url` / `{id}/content`。
 
 ### 存储
 

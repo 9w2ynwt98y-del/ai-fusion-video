@@ -44,4 +44,35 @@ class ImageGenerationConsumerTests {
 
         assertSame(flowStrategy, resolved);
     }
+
+    @Test
+    void shouldResolveFunAiImagesThroughOpenAiCompatibleStrategy() throws Exception {
+        ImageGenerationStrategy openAiStrategy = mock(ImageGenerationStrategy.class);
+        Map<String, ImageGenerationStrategy> strategyMap = new LinkedHashMap<>();
+        strategyMap.put("openai_compatible", openAiStrategy);
+
+        ImageGenerationConsumer consumer = new ImageGenerationConsumer(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        Method method = ImageGenerationConsumer.class.getDeclaredMethod(
+                "resolveStrategyByPlatform",
+                Map.class,
+                String.class
+        );
+        method.setAccessible(true);
+
+        ImageGenerationStrategy resolved = (ImageGenerationStrategy) method.invoke(
+                consumer,
+                strategyMap,
+                "funai"
+        );
+
+        assertSame(openAiStrategy, resolved);
+    }
 }

@@ -74,8 +74,10 @@ public class OpenAiCompatibleGenericVideoProtocolAdapter implements OpenAiCompat
         String status = support.firstText(node, "status", "state");
         Integer duration = support.parsePositiveSeconds(support.firstText(node, "seconds", "duration"));
         String videoUrl = support.firstText(node, "url", "video_url");
+        String contentUrl = support.firstText(node, "content_url", "contentUrl");
         String coverUrl = support.firstText(node, "cover_url", "thumbnail_url", "coverUrl", "thumbnailUrl");
         String errorMessage = support.extractErrorMessage(root);
-        return new OpenAiCompatibleVideoTaskResult(trackingId, status, duration, videoUrl, coverUrl, errorMessage);
+        return new OpenAiCompatibleVideoTaskResult(
+                trackingId, status, duration, videoUrl, contentUrl, coverUrl, errorMessage);
     }
 }

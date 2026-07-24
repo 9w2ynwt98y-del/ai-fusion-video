@@ -1,15 +1,54 @@
 package com.stonewu.fusion.service.ai.provider;
 
 import com.stonewu.fusion.entity.ai.ApiConfig;
+import com.sun.net.httpserver.HttpServer;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.model.Model;
 import org.junit.jupiter.api.Test;
 
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OpenAiCompatibleAiProviderTests {
+
+    @Test
+    void funAiModelDiscoveryAcceptsBaseUrlEndingInV1() throws Exception {
+        AtomicReference<String> requestPath = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/v1/models", exchange -> {
+            requestPath.set(exchange.getRequestURI().getPath());
+            byte[] response = "{\"data\":[{\"id\":\"veo-3.1-lite\",\"owned_by\":\"funai\"}]}"
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(response);
+            }
+        });
+        server.start();
+
+        try {
+            OpenAiCompatibleAiProvider provider = new OpenAiCompatibleAiProvider();
+            AiProviderContext context = AiProviderContext.builder()
+                    .platform("funai")
+                    .apiKey("test-key")
+                    .baseUrl("http://localhost:" + server.getAddress().getPort() + "/v1")
+                    .apiConfig(ApiConfig.builder().platform("funai").apiKey("test-key").build())
+                    .build();
+
+            assertThat(provider.listRemoteModels(context))
+                    .extracting("id")
+                    .containsExactly("veo-3.1-lite");
+            assertThat(requestPath.get()).isEqualTo("/v1/models");
+        } finally {
+            server.stop(0);
+        }
+    }
 
     @Test
     void createAgentScopeModelUsesResponsesModelWhenEnabled() {

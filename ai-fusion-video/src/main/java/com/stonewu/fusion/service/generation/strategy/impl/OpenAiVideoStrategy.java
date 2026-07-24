@@ -404,7 +404,7 @@ public class OpenAiVideoStrategy implements VideoGenerationStrategy {
                 apiConfig,
                 task,
                 modelConfig,
-                aiModelMetadataResolver.resolve(model, PLATFORM)
+                aiModelMetadataResolver.resolve(model, apiConfig.getPlatform())
         );
     }
 

@@ -166,6 +166,7 @@ public class AiModelMetadataResolver {
             case "googleflowreverseapi" -> "google_flow";
             case "dashscope" -> "wan";
             case "volcengine" -> "seedance";
+            case "funai" -> "funai";
             case "newapi" -> switch (StrUtil.blankToDefault(family, "generic")) {
                 case "jimeng", "kling", "sora" -> family;
                 default -> "generic";

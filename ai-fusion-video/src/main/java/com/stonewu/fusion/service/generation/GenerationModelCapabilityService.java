@@ -347,7 +347,7 @@ public class GenerationModelCapabilityService {
                 }
                 yield new ImageModelCapability(false, 0, 0);
             }
-            case "openai_compatible", "newapi", "vertex_ai", "vertexai" -> new ImageModelCapability(false, 0, 0);
+            case "openai_compatible", "newapi", "funai", "vertex_ai", "vertexai" -> new ImageModelCapability(false, 0, 0);
             default -> new ImageModelCapability(false, 0, 0);
         };
     }
@@ -428,6 +428,15 @@ public class GenerationModelCapabilityService {
         if ("newapi".equals(normalizedPlatform)) {
             return new VideoModelCapability(true, false, true, false, false,
                     0, 1, 1, 0, 0);
+        }
+
+        if ("funai".equals(normalizedPlatform)) {
+            if (code.contains("seedance-2.0")) {
+                return new VideoModelCapability(true, true, true, true, true,
+                        0, 9, 9, 3, 3);
+            }
+            return new VideoModelCapability(true, true, true, true, true,
+                    0, 9, 9, 3, 3);
         }
 
         if ("openai_compatible".equals(normalizedPlatform)

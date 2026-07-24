@@ -41,7 +41,11 @@ public class VideoGenerationStrategyRouter {
             throw new BusinessException("视频模型未绑定有效 API 配置，无法确定接入渠道");
         }
 
-        VideoGenerationStrategy strategy = candidates.get(normalizedPlatform);
+        String strategyPlatform = switch (normalizedPlatform) {
+            case "funai" -> "openai_compatible";
+            default -> normalizedPlatform;
+        };
+        VideoGenerationStrategy strategy = candidates.get(strategyPlatform);
         if (strategy != null) {
             return strategy;
         }

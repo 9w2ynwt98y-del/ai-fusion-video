@@ -530,6 +530,14 @@ function getSuggestedModelFamilies(platform: string | null | undefined, modelTyp
         { value: "wan_video", label: "Wan 视频" },
       ];
     }
+    if (normalized === "funai") {
+      return [
+        ...common,
+        { value: "seedance", label: "Seedance" },
+        { value: "veo", label: "Veo" },
+        { value: "sora", label: "Sora" },
+      ];
+    }
     if (normalized === "dashscope") {
       return [...common, { value: "wan_video", label: "Wan 视频" }];
     }
@@ -571,6 +579,8 @@ function getSuggestedVideoProtocol(platform: string | null | undefined, modelFam
       return "wan";
     case "volcengine":
       return "seedance";
+    case "funai":
+      return "funai";
     case "openai_compatible":
       if (normalizedFamily === "agnes" || normalizedFamily === "sora") {
         return normalizedFamily;
@@ -653,6 +663,7 @@ const MODEL_PROTOCOL_LABELS: Record<string, string> = {
   jimeng: "即梦协议",
   kling: "可灵协议",
   sora: "Sora 协议",
+  funai: "FunAI 视频协议",
 };
 
 const VIDEO_PROTOCOL_OPTIONS = [
@@ -662,6 +673,7 @@ const VIDEO_PROTOCOL_OPTIONS = [
   { value: "jimeng", label: "即梦协议" },
   { value: "kling", label: "可灵协议" },
   { value: "sora", label: "Sora 协议" },
+  { value: "funai", label: "FunAI 视频协议" },
   { value: "wan", label: "Wan 协议" },
   { value: "seedance", label: "Seedance 协议" },
   { value: "google_flow", label: "Flow 协议" },
@@ -694,6 +706,9 @@ function getSuggestedVideoProtocolOptions(
   switch (normalizedPlatform) {
     case "newapi":
       ["generic", "jimeng", "kling", "sora"].forEach(addOption);
+      break;
+    case "funai":
+      addOption("funai");
       break;
     case "dashscope":
       addOption("wan");

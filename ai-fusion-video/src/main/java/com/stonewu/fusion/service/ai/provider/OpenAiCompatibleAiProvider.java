@@ -29,7 +29,8 @@ import java.util.Set;
 public class OpenAiCompatibleAiProvider extends AbstractAiProvider {
 
     private static final Set<String> SUPPORTED_PLATFORMS = Set.of(
-            "openai_compatible", "openai", "deepseek", "zhipu", "moonshot", "volcengine", "siliconflow", "newapi");
+            "openai_compatible", "openai", "deepseek", "zhipu", "moonshot", "volcengine", "siliconflow", "newapi",
+            "funai");
 
     @Override
     public boolean supports(String platform) {
@@ -227,7 +228,18 @@ public class OpenAiCompatibleAiProvider extends AbstractAiProvider {
     }
 
     private String resolveRootBaseUrl(String platform, String baseUrl) {
-        return StrUtil.isBlank(baseUrl) ? inferRootBaseUrl(platform) : normalizeBaseUrl(baseUrl);
+        String resolved = StrUtil.isBlank(baseUrl) ? inferRootBaseUrl(platform) : normalizeBaseUrl(baseUrl);
+        if (!"funai".equalsIgnoreCase(platform)) {
+            return resolved;
+        }
+
+        String normalized = resolved.replaceAll("/+$", "");
+        for (String suffix : List.of("/v1/models", "/v1/videos", "/v1")) {
+            if (normalized.toLowerCase().endsWith(suffix)) {
+                return normalized.substring(0, normalized.length() - suffix.length());
+            }
+        }
+        return normalized;
     }
 
     private boolean shouldAutoAppendV1Path(AiProviderContext context) {
@@ -246,6 +258,7 @@ public class OpenAiCompatibleAiProvider extends AbstractAiProvider {
             case "moonshot" -> "https://api.moonshot.cn";
             case "siliconflow" -> "https://api.siliconflow.cn";
             case "newapi" -> "https://docs.newapi.ai";
+            case "funai" -> "https://api.funai.works";
             case "openai" -> "https://api.openai.com";
             default -> "https://api.openai.com";
         };
